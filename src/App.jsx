@@ -1,3 +1,9 @@
+// Reset all inputs and calculated data
+const resetAll = () => {
+  setInventory({});
+  setRequiredSquads([]);
+  setSolutions([]);
+};
 import React, { useState, useEffect } from "react";
 import _ from "lodash";
 
@@ -136,11 +142,45 @@ const SBCCalculator = () => {
     }
   };
 
-  // Reset all inputs and calculated data
-  const resetAll = () => {
-    setInventory({});
-    setRequiredSquads([]);
-    setSolutions([]);
+  // Remove a card from inventory
+  const removeCard = (rating) => {
+    const updatedInventory = { ...inventory };
+    delete updatedInventory[rating];
+    setInventory(updatedInventory);
+  };
+
+  // Update card count in inventory
+  const updateCardCount = (rating, newCount) => {
+    if (newCount <= 0) {
+      removeCard(rating);
+      return;
+    }
+
+    const updatedInventory = { ...inventory };
+    updatedInventory[rating] = newCount;
+    setInventory(updatedInventory);
+  };
+
+  // Remove a squad requirement
+  const removeSquad = (index) => {
+    const updatedSquads = [...requiredSquads];
+    updatedSquads.splice(index, 1);
+    setRequiredSquads(updatedSquads);
+  };
+
+  // Update squad count
+  const updateSquadCount = (index, newCount) => {
+    if (newCount <= 0) {
+      removeSquad(index);
+      return;
+    }
+
+    const updatedSquads = [...requiredSquads];
+    updatedSquads[index] = {
+      ...updatedSquads[index],
+      count: newCount,
+    };
+    setRequiredSquads(updatedSquads);
   };
 
   // Calculate if a combination is possible with current inventory
@@ -219,6 +259,7 @@ const SBCCalculator = () => {
     const generatedSolutions = [];
     let allPossible = true;
     let totalMissingCards = {};
+    let usedCards = {};
 
     // Process each required squad
     for (const squad of sortedSquads) {
@@ -233,6 +274,14 @@ const SBCCalculator = () => {
             squadRating: squad.rating,
             combination: solution.combination,
           });
+
+          // Track used cards
+          Object.entries(solution.combination).forEach(([rating, count]) => {
+            if (count > 0) {
+              usedCards[rating] = (usedCards[rating] || 0) + count;
+            }
+          });
+
           currentInventory = solution.remainingInventory;
         } else {
           allPossible = false;
@@ -267,6 +316,7 @@ const SBCCalculator = () => {
       remainingCards: currentInventory,
       totalMissingCards:
         Object.keys(totalMissingCards).length > 0 ? totalMissingCards : null,
+      usedCards: usedCards,
     });
   };
 
@@ -307,10 +357,30 @@ const SBCCalculator = () => {
             {Object.entries(inventory).map(([rating, count]) => (
               <div
                 key={rating}
-                className="bg-white shadow rounded p-2 text-center"
+                className="bg-white shadow rounded p-2 text-center group relative"
               >
+                <button
+                  onClick={() => removeCard(rating)}
+                  className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full w-5 h-5 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+                >
+                  ×
+                </button>
                 <div className="font-bold">{rating} OVR</div>
-                <div>{count} cards</div>
+                <div className="flex items-center justify-center gap-2">
+                  <button
+                    onClick={() => updateCardCount(rating, count - 1)}
+                    className="text-gray-500 hover:text-gray-700 w-6 h-6"
+                  >
+                    −
+                  </button>
+                  <span>{count}</span>
+                  <button
+                    onClick={() => updateCardCount(rating, count + 1)}
+                    className="text-gray-500 hover:text-gray-700 w-6 h-6"
+                  >
+                    +
+                  </button>
+                </div>
               </div>
             ))}
 
@@ -367,11 +437,29 @@ const SBCCalculator = () => {
             {requiredSquads.map((squad, index) => (
               <div
                 key={index}
-                className="bg-white shadow rounded p-2 text-center"
+                className="bg-white shadow rounded p-2 text-center group relative"
               >
+                <button
+                  onClick={() => removeSquad(index)}
+                  className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full w-5 h-5 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+                >
+                  ×
+                </button>
                 <div className="font-bold">{squad.rating} OVR</div>
-                <div>
-                  {squad.count} squad{squad.count > 1 ? "s" : ""}
+                <div className="flex items-center justify-center gap-2">
+                  <button
+                    onClick={() => updateSquadCount(index, squad.count - 1)}
+                    className="text-gray-500 hover:text-gray-700 w-6 h-6"
+                  >
+                    −
+                  </button>
+                  <span>{squad.count}</span>
+                  <button
+                    onClick={() => updateSquadCount(index, squad.count + 1)}
+                    className="text-gray-500 hover:text-gray-700 w-6 h-6"
+                  >
+                    +
+                  </button>
                 </div>
               </div>
             ))}
@@ -518,6 +606,32 @@ const SBCCalculator = () => {
               </div>
             </div>
           ))}
+
+          {/* Used Cards Summary */}
+          {solutions.usedCards &&
+            Object.keys(solutions.usedCards).length > 0 && (
+              <div className="mt-6 bg-green-50 rounded-lg p-4 border border-green-200">
+                <h3 className="text-lg font-semibold mb-2 text-green-700">
+                  Cards Used in Solutions
+                </h3>
+
+                <div className="flex flex-wrap gap-2">
+                  {Object.entries(solutions.usedCards)
+                    .sort((a, b) => parseInt(b[0]) - parseInt(a[0])) // Sort by rating high to low
+                    .map(([rating, count]) => (
+                      <div
+                        key={rating}
+                        className="bg-white shadow border border-green-200 rounded p-2 text-center"
+                      >
+                        <div className="font-bold">{rating} OVR</div>
+                        <div className="text-green-600 font-semibold">
+                          {count} used
+                        </div>
+                      </div>
+                    ))}
+                </div>
+              </div>
+            )}
 
           {/* Missing Cards Summary */}
           {solutions.totalMissingCards && (
