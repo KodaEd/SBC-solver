@@ -346,7 +346,7 @@ const SBCCalculator = () => {
 
   return (
     <div className="p-4 max-w-4xl mx-auto">
-      <h1 className="text-2xl font-bold mb-6">FC SBC Calculator</h1>
+      <h1 className="text-2xl font-bold mb-6">FC SBC Calculator Right now the cards supported are from 82-93 and for squads ratings of 87-90</h1>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         {/* Card Inventory Section */}
